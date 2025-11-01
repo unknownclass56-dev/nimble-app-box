@@ -14,16 +14,285 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_versions: {
+        Row: {
+          app_id: string
+          file_key: string
+          file_url: string
+          id: string
+          release_notes: string | null
+          uploaded_at: string | null
+          version: string
+        }
+        Insert: {
+          app_id: string
+          file_key: string
+          file_url: string
+          id?: string
+          release_notes?: string | null
+          uploaded_at?: string | null
+          version: string
+        }
+        Update: {
+          app_id?: string
+          file_key?: string
+          file_url?: string
+          id?: string
+          release_notes?: string | null
+          uploaded_at?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_versions_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      apps: {
+        Row: {
+          category: Database["public"]["Enums"]["app_category"]
+          created_at: string | null
+          created_by: string | null
+          current_version: string
+          deleted: boolean | null
+          download_count: number | null
+          file_size: string | null
+          icon_url: string | null
+          id: string
+          long_description: string
+          min_os: string
+          package_name: string
+          rating: number | null
+          screenshots: string[] | null
+          short_description: string
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["app_category"]
+          created_at?: string | null
+          created_by?: string | null
+          current_version: string
+          deleted?: boolean | null
+          download_count?: number | null
+          file_size?: string | null
+          icon_url?: string | null
+          id?: string
+          long_description: string
+          min_os: string
+          package_name: string
+          rating?: number | null
+          screenshots?: string[] | null
+          short_description: string
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["app_category"]
+          created_at?: string | null
+          created_by?: string | null
+          current_version?: string
+          deleted?: boolean | null
+          download_count?: number | null
+          file_size?: string | null
+          icon_url?: string | null
+          id?: string
+          long_description?: string
+          min_os?: string
+          package_name?: string
+          rating?: number | null
+          screenshots?: string[] | null
+          short_description?: string
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      download_logs: {
+        Row: {
+          app_id: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          version: string | null
+        }
+        Insert: {
+          app_id: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          version?: string | null
+        }
+        Update: {
+          app_id?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "download_logs_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          app_id: string | null
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          status: Database["public"]["Enums"]["ticket_status"] | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          app_id?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          status?: Database["public"]["Enums"]["ticket_status"] | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          app_id?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          status?: Database["public"]["Enums"]["ticket_status"] | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_app_id_fkey"
+            columns: ["app_id"]
+            isOneToOne: false
+            referencedRelation: "apps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_replies: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          replied_by: string | null
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          replied_by?: string | null
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          replied_by?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_replies_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_category:
+        | "productivity"
+        | "photography"
+        | "health"
+        | "entertainment"
+        | "utilities"
+      app_role: "admin" | "user"
+      ticket_status: "new" | "open" | "resolved"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +419,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_category: [
+        "productivity",
+        "photography",
+        "health",
+        "entertainment",
+        "utilities",
+      ],
+      app_role: ["admin", "user"],
+      ticket_status: ["new", "open", "resolved"],
+    },
   },
 } as const
