@@ -1,49 +1,49 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Smartphone, Shield, Zap } from "lucide-react";
 import AppCard from "@/components/AppCard";
 import Navbar from "@/components/Navbar";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const Home = () => {
-  // Mock data for featured apps
-  const featuredApps = [
-    {
-      id: "1",
-      title: "Photo Editor Pro",
-      category: "Photography",
-      shortDescription: "Professional photo editing tools with AI enhancement",
-      iconUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
-      downloadCount: 125000,
-      rating: 4.8,
-    },
-    {
-      id: "2",
-      title: "Task Manager",
-      category: "Productivity",
-      shortDescription: "Organize your tasks and boost productivity",
-      iconUrl: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=200&h=200&fit=crop",
-      downloadCount: 89000,
-      rating: 4.6,
-    },
-    {
-      id: "3",
-      title: "Fitness Tracker",
-      category: "Health",
-      shortDescription: "Track workouts, calories, and health metrics",
-      iconUrl: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=200&fit=crop",
-      downloadCount: 203000,
-      rating: 4.7,
-    },
-    {
-      id: "4",
-      title: "Music Player",
-      category: "Entertainment",
-      shortDescription: "High-quality audio player with equalizer",
-      iconUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=200&h=200&fit=crop",
-      downloadCount: 156000,
-      rating: 4.9,
-    },
-  ];
+  const { isAdmin } = useAuth();
+  const [featuredApps, setFeaturedApps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFeaturedApps();
+  }, []);
+
+  const fetchFeaturedApps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("apps")
+        .select("*")
+        .eq("deleted", false)
+        .order("download_count", { ascending: false })
+        .limit(4);
+
+      if (error) throw error;
+
+      setFeaturedApps(
+        data?.map((app) => ({
+          id: app.id,
+          title: app.title,
+          category: app.category,
+          shortDescription: app.short_description,
+          iconUrl: app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
+          downloadCount: app.download_count,
+          rating: app.rating,
+        })) || []
+      );
+    } catch (error) {
+      console.error("Error fetching apps:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const categories = [
     { name: "Productivity", count: 234, icon: Zap },
@@ -73,11 +73,13 @@ const Home = () => {
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Link to="/admin">
-                <Button size="lg" variant="outline">
-                  Admin Portal
-                </Button>
-              </Link>
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button size="lg" variant="outline">
+                    Admin Portal
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -116,11 +118,26 @@ const Home = () => {
             </Button>
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredApps.map((app) => (
-            <AppCard key={app.id} {...app} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Loading apps...</p>
+          </div>
+        ) : featuredApps.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredApps.map((app) => (
+              <AppCard key={app.id} {...app} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No apps available yet.</p>
+            {isAdmin && (
+              <Link to="/admin">
+                <Button className="mt-4">Upload Your First App</Button>
+              </Link>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Footer */}

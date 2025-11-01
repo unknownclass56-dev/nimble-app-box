@@ -1,72 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import AppCard from "@/components/AppCard";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Browse = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [category, setCategory] = useState("all");
+  const [apps, setApps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock apps data
-  const apps = [
-    {
-      id: "1",
-      title: "Photo Editor Pro",
-      category: "Photography",
-      shortDescription: "Professional photo editing tools with AI enhancement",
-      iconUrl: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
-      downloadCount: 125000,
-      rating: 4.8,
-    },
-    {
-      id: "2",
-      title: "Task Manager",
-      category: "Productivity",
-      shortDescription: "Organize your tasks and boost productivity",
-      iconUrl: "https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=200&h=200&fit=crop",
-      downloadCount: 89000,
-      rating: 4.6,
-    },
-    {
-      id: "3",
-      title: "Fitness Tracker",
-      category: "Health",
-      shortDescription: "Track workouts, calories, and health metrics",
-      iconUrl: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=200&fit=crop",
-      downloadCount: 203000,
-      rating: 4.7,
-    },
-    {
-      id: "4",
-      title: "Music Player",
-      category: "Entertainment",
-      shortDescription: "High-quality audio player with equalizer",
-      iconUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=200&h=200&fit=crop",
-      downloadCount: 156000,
-      rating: 4.9,
-    },
-    {
-      id: "5",
-      title: "Note Taking App",
-      category: "Productivity",
-      shortDescription: "Capture ideas and organize notes efficiently",
-      iconUrl: "https://images.unsplash.com/photo-1517842645767-c639042777db?w=200&h=200&fit=crop",
-      downloadCount: 76000,
-      rating: 4.5,
-    },
-    {
-      id: "6",
-      title: "Weather Forecast",
-      category: "Utilities",
-      shortDescription: "Accurate weather predictions and live radar",
-      iconUrl: "https://images.unsplash.com/photo-1592210454359-9043f067919b?w=200&h=200&fit=crop",
-      downloadCount: 112000,
-      rating: 4.4,
-    },
-  ];
+  useEffect(() => {
+    fetchApps();
+  }, []);
+
+  const fetchApps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("apps")
+        .select("*")
+        .eq("deleted", false)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setApps(
+        data?.map((app) => ({
+          id: app.id,
+          title: app.title,
+          category: app.category,
+          shortDescription: app.short_description,
+          iconUrl: app.icon_url || "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
+          downloadCount: app.download_count,
+          rating: app.rating,
+        })) || []
+      );
+    } catch (error) {
+      console.error("Error fetching apps:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredApps = apps.filter((app) => {
     const matchesSearch = app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -119,13 +95,17 @@ const Browse = () => {
         </div>
 
         {/* Apps Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredApps.map((app) => (
-            <AppCard key={app.id} {...app} />
-          ))}
-        </div>
-
-        {filteredApps.length === 0 && (
+        {loading ? (
+          <div className="text-center py-16">
+            <p className="text-xl text-muted-foreground">Loading apps...</p>
+          </div>
+        ) : filteredApps.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredApps.map((app) => (
+              <AppCard key={app.id} {...app} />
+            ))}
+          </div>
+        ) : (
           <div className="text-center py-16">
             <p className="text-xl text-muted-foreground">No apps found matching your criteria.</p>
           </div>

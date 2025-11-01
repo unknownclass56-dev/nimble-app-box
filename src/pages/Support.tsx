@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LifeBuoy, Mail, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Support = () => {
   const { toast } = useToast();
@@ -19,22 +20,39 @@ const Support = () => {
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mock submission
-    toast({
-      title: "Support ticket submitted",
-      description: "We'll get back to you within 24 hours. Ticket ID: #" + Math.floor(Math.random() * 10000),
-    });
-    
-    setFormData({
-      name: "",
-      email: "",
-      subject: "",
-      appId: "",
-      message: "",
-    });
+    try {
+      const { error } = await supabase.from("support_tickets").insert([{
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        app_id: formData.appId || null,
+        message: formData.message,
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Support ticket submitted",
+        description: "We'll get back to you within 24 hours.",
+      });
+      
+      setFormData({
+        name: "",
+        email: "",
+        subject: "",
+        appId: "",
+        message: "",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Submission failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (

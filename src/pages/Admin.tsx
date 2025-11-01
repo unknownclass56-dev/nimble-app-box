@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,30 +8,124 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Package, BarChart3, MessageSquare, Plus } from "lucide-react";
+import { Upload, Package, BarChart3, MessageSquare, Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Admin = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [stats, setStats] = useState({ totalApps: 0, totalDownloads: 0, pendingTickets: 0 });
 
-  const handleUpload = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!authLoading && !isAdmin) {
+      toast({
+        title: "Access denied",
+        description: "You must be an admin to access this page.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+    }
+  }, [isAdmin, authLoading, navigate, toast]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchStats();
+    }
+  }, [isAdmin]);
+
+  const fetchStats = async () => {
+    try {
+      const [appsResult, ticketsResult] = await Promise.all([
+        supabase.from("apps").select("id, download_count").eq("deleted", false),
+        supabase.from("support_tickets").select("id").eq("status", "new"),
+      ]);
+
+      const totalApps = appsResult.data?.length || 0;
+      const totalDownloads = appsResult.data?.reduce((sum, app) => sum + (app.download_count || 0), 0) || 0;
+      const pendingTickets = ticketsResult.data?.length || 0;
+
+      setStats({ totalApps, totalDownloads, pendingTickets });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
     
-    setTimeout(() => {
-      setUploading(false);
+    const formData = new FormData(e.target as HTMLFormElement);
+    const category = formData.get("category") as "productivity" | "photography" | "health" | "entertainment" | "utilities";
+    
+    const appData = {
+      title: formData.get("appName") as string,
+      slug: (formData.get("appName") as string).toLowerCase().replace(/\s+/g, "-"),
+      package_name: formData.get("packageName") as string,
+      category: category,
+      short_description: formData.get("shortDesc") as string,
+      long_description: formData.get("longDesc") as string,
+      current_version: formData.get("version") as string,
+      min_os: formData.get("minOS") as string,
+      icon_url: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
+      created_by: user?.id,
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from("apps")
+        .insert([appData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add version entry
+      await supabase.from("app_versions").insert([{
+        app_id: data.id,
+        version: appData.current_version,
+        file_url: "https://placeholder-url.com/app.apk",
+        file_key: "placeholder-key",
+        release_notes: formData.get("releaseNotes") as string,
+      }]);
+
       toast({
         title: "App uploaded successfully",
         description: "Your app has been published and is now available for download.",
       });
-    }, 2000);
+
+      (e.target as HTMLFormElement).reset();
+      fetchStats();
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const stats = [
-    { label: "Total Apps", value: "24", icon: Package },
-    { label: "Total Downloads", value: "1.2M", icon: BarChart3 },
-    { label: "Pending Tickets", value: "8", icon: MessageSquare },
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
+
+  const statItems = [
+    { label: "Total Apps", value: stats.totalApps.toString(), icon: Package },
+    { label: "Total Downloads", value: stats.totalDownloads.toLocaleString(), icon: BarChart3 },
+    { label: "Pending Tickets", value: stats.pendingTickets.toString(), icon: MessageSquare },
   ];
 
   return (
@@ -44,7 +139,7 @@ const Admin = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {stats.map((stat) => (
+          {statItems.map((stat) => (
             <Card key={stat.label}>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -88,18 +183,18 @@ const Admin = () => {
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="appName">App Name *</Label>
-                      <Input id="appName" required placeholder="My Awesome App" />
+                      <Input id="appName" name="appName" required placeholder="My Awesome App" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="packageName">Package Name *</Label>
-                      <Input id="packageName" required placeholder="com.example.app" />
+                      <Input id="packageName" name="packageName" required placeholder="com.example.app" />
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="category">Category *</Label>
-                      <Select required>
+                      <Select name="category" required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
@@ -114,55 +209,36 @@ const Admin = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="version">Version *</Label>
-                      <Input id="version" required placeholder="1.0.0" />
+                      <Input id="version" name="version" required placeholder="1.0.0" />
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="shortDesc">Short Description *</Label>
-                    <Input id="shortDesc" required placeholder="Brief description (max 80 characters)" maxLength={80} />
+                    <Input id="shortDesc" name="shortDesc" required placeholder="Brief description (max 80 characters)" maxLength={80} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="longDesc">Long Description *</Label>
-                    <Textarea id="longDesc" required placeholder="Detailed description of your app..." rows={5} />
+                    <Textarea id="longDesc" name="longDesc" required placeholder="Detailed description of your app..." rows={5} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="releaseNotes">Release Notes *</Label>
-                    <Textarea id="releaseNotes" required placeholder="What's new in this version..." rows={4} />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="icon">App Icon *</Label>
-                      <Input id="icon" type="file" required accept="image/*" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="screenshots">Screenshots *</Label>
-                      <Input id="screenshots" type="file" required accept="image/*" multiple />
-                    </div>
+                    <Textarea id="releaseNotes" name="releaseNotes" required placeholder="What's new in this version..." rows={4} />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="appFile">App File (APK/ZIP) *</Label>
-                    <Input id="appFile" type="file" required accept=".apk,.zip" />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="minOS">Minimum OS *</Label>
-                      <Input id="minOS" required placeholder="Android 8.0+" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="size">File Size</Label>
-                      <Input id="size" placeholder="Calculated automatically" disabled />
-                    </div>
+                    <Label htmlFor="minOS">Minimum OS *</Label>
+                    <Input id="minOS" name="minOS" required placeholder="Android 8.0+" />
                   </div>
 
                   <Button type="submit" size="lg" disabled={uploading} className="w-full">
                     {uploading ? (
-                      "Uploading..."
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Uploading...
+                      </>
                     ) : (
                       <>
                         <Plus className="mr-2 h-5 w-5" />
@@ -182,7 +258,7 @@ const Admin = () => {
                 <CardDescription>View and edit your published apps</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">App management interface will be displayed here.</p>
+                <p className="text-muted-foreground">App management interface coming soon.</p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -194,7 +270,7 @@ const Admin = () => {
                 <CardDescription>Respond to user support requests</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Support ticket management will be displayed here.</p>
+                <p className="text-muted-foreground">Support ticket management coming soon.</p>
               </CardContent>
             </Card>
           </TabsContent>
