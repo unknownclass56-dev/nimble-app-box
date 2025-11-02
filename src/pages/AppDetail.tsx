@@ -5,9 +5,44 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Download, Star, Share2, Shield, Smartphone, LifeBuoy } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const AppDetail = () => {
   const { id } = useParams();
+  const { toast } = useToast();
+
+  const handleDownload = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('download-app', {
+        body: { appId: id }
+      });
+
+      if (error) {
+        toast({
+          title: "Download failed",
+          description: "Unable to download the app. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.downloadUrl) {
+        window.open(data.downloadUrl, '_blank');
+        toast({
+          title: "Download started",
+          description: `${data.appName} v${data.version} is downloading.`,
+        });
+      }
+    } catch (err) {
+      console.error('Download error:', err);
+      toast({
+        title: "Download failed",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Mock app data
   const app = {
@@ -68,7 +103,7 @@ const AppDetail = () => {
             </div>
             
             <div className="flex flex-wrap gap-3">
-              <Button size="lg" className="group">
+              <Button size="lg" className="group" onClick={handleDownload}>
                 <Download className="mr-2 h-5 w-5" />
                 Download ({app.size})
               </Button>

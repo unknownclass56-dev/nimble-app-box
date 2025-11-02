@@ -283,6 +283,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_download_count: {
+        Args: { app_id_param: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_category:
