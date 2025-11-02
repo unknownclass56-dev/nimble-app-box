@@ -19,6 +19,7 @@ const Admin = () => {
   const { user, isAdmin, loading: authLoading } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [stats, setStats] = useState({ totalApps: 0, totalDownloads: 0, pendingTickets: 0 });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -56,25 +57,56 @@ const Admin = () => {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedFile) {
+      toast({
+        title: "No file selected",
+        description: "Please select an exe file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploading(true);
     
     const formData = new FormData(e.target as HTMLFormElement);
     const category = formData.get("category") as "productivity" | "photography" | "health" | "entertainment" | "utilities";
     
-    const appData = {
-      title: formData.get("appName") as string,
-      slug: (formData.get("appName") as string).toLowerCase().replace(/\s+/g, "-"),
-      package_name: formData.get("packageName") as string,
-      category: category,
-      short_description: formData.get("shortDesc") as string,
-      long_description: formData.get("longDesc") as string,
-      current_version: formData.get("version") as string,
-      min_os: formData.get("minOS") as string,
-      icon_url: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
-      created_by: user?.id,
-    };
-
     try {
+      // Upload file to storage
+      const fileName = `${Date.now()}-${selectedFile.name}`;
+      const filePath = `apps/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("app-files")
+        .upload(filePath, selectedFile, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("app-files")
+        .getPublicUrl(filePath);
+
+      const fileSizeInMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+
+      const appData = {
+        title: formData.get("appName") as string,
+        slug: (formData.get("appName") as string).toLowerCase().replace(/\s+/g, "-"),
+        package_name: formData.get("packageName") as string,
+        category: category,
+        short_description: formData.get("shortDesc") as string,
+        long_description: formData.get("longDesc") as string,
+        current_version: formData.get("version") as string,
+        min_os: formData.get("minOS") as string,
+        file_size: `${fileSizeInMB} MB`,
+        icon_url: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
+        created_by: user?.id,
+      };
+
       const { data, error } = await supabase
         .from("apps")
         .insert([appData])
@@ -87,8 +119,8 @@ const Admin = () => {
       await supabase.from("app_versions").insert([{
         app_id: data.id,
         version: appData.current_version,
-        file_url: "https://placeholder-url.com/app.apk",
-        file_key: "placeholder-key",
+        file_url: urlData.publicUrl,
+        file_key: filePath,
         release_notes: formData.get("releaseNotes") as string,
       }]);
 
@@ -98,6 +130,7 @@ const Admin = () => {
       });
 
       (e.target as HTMLFormElement).reset();
+      setSelectedFile(null);
       fetchStats();
     } catch (error: any) {
       toast({
@@ -230,7 +263,26 @@ const Admin = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="minOS">Minimum OS *</Label>
-                    <Input id="minOS" name="minOS" required placeholder="Android 8.0+" />
+                    <Input id="minOS" name="minOS" required placeholder="Windows 10+" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="appFile">App File (EXE) *</Label>
+                    <div className="flex items-center gap-4">
+                      <Input 
+                        id="appFile" 
+                        type="file" 
+                        accept=".exe"
+                        required
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        className="cursor-pointer"
+                      />
+                      {selectedFile && (
+                        <p className="text-sm text-muted-foreground">
+                          {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <Button type="submit" size="lg" disabled={uploading} className="w-full">
