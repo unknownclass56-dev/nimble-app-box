@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const Support = () => {
   const { toast } = useToast();
+  const [apps, setApps] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -19,6 +20,25 @@ const Support = () => {
     appId: "",
     message: "",
   });
+
+  useEffect(() => {
+    fetchApps();
+  }, []);
+
+  const fetchApps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("apps")
+        .select("id, title")
+        .eq("deleted", false)
+        .order("title", { ascending: true });
+
+      if (error) throw error;
+      setApps(data || []);
+    } catch (error) {
+      console.error("Error fetching apps:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +48,7 @@ const Support = () => {
         name: formData.name,
         email: formData.email,
         subject: formData.subject,
-        app_id: formData.appId || null,
+        app_id: formData.appId && formData.appId !== "none" ? formData.appId : null,
         message: formData.message,
       }]);
 
@@ -133,10 +153,11 @@ const Support = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">No specific app</SelectItem>
-                    <SelectItem value="1">Photo Editor Pro</SelectItem>
-                    <SelectItem value="2">Task Manager</SelectItem>
-                    <SelectItem value="3">Fitness Tracker</SelectItem>
-                    <SelectItem value="4">Music Player</SelectItem>
+                    {apps.map((app) => (
+                      <SelectItem key={app.id} value={app.id}>
+                        {app.title}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
