@@ -21,6 +21,8 @@ const Admin = () => {
   const [uploading, setUploading] = useState(false);
   const [stats, setStats] = useState({ totalApps: 0, totalDownloads: 0, pendingTickets: 0 });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedIcon, setSelectedIcon] = useState<File | null>(null);
+  const [selectedScreenshots, setSelectedScreenshots] = useState<File[]>([]);
 
   useEffect(() => {
     if (!authLoading && !isAdmin) {
@@ -94,6 +96,50 @@ const Admin = () => {
 
       const fileSizeInMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
 
+      // Upload icon if provided
+      let iconUrl = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop";
+      if (selectedIcon) {
+        const iconFileName = `${Date.now()}-${selectedIcon.name}`;
+        const iconPath = `icons/${iconFileName}`;
+        
+        const { error: iconError } = await supabase.storage
+          .from("app-files")
+          .upload(iconPath, selectedIcon, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (!iconError) {
+          const { data: iconData } = supabase.storage
+            .from("app-files")
+            .getPublicUrl(iconPath);
+          iconUrl = iconData.publicUrl;
+        }
+      }
+
+      // Upload screenshots if provided
+      const screenshotUrls: string[] = [];
+      if (selectedScreenshots.length > 0) {
+        for (const screenshot of selectedScreenshots) {
+          const screenshotFileName = `${Date.now()}-${screenshot.name}`;
+          const screenshotPath = `screenshots/${screenshotFileName}`;
+          
+          const { error: screenshotError } = await supabase.storage
+            .from("app-files")
+            .upload(screenshotPath, screenshot, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (!screenshotError) {
+            const { data: screenshotData } = supabase.storage
+              .from("app-files")
+              .getPublicUrl(screenshotPath);
+            screenshotUrls.push(screenshotData.publicUrl);
+          }
+        }
+      }
+
       const appData = {
         title: formData.get("appName") as string,
         slug: (formData.get("appName") as string).toLowerCase().replace(/\s+/g, "-"),
@@ -104,7 +150,8 @@ const Admin = () => {
         current_version: formData.get("version") as string,
         min_os: formData.get("minOS") as string,
         file_size: `${fileSizeInMB} MB`,
-        icon_url: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
+        icon_url: iconUrl,
+        screenshots: screenshotUrls,
         created_by: user?.id,
       };
 
@@ -132,6 +179,8 @@ const Admin = () => {
 
       (e.target as HTMLFormElement).reset();
       setSelectedFile(null);
+      setSelectedIcon(null);
+      setSelectedScreenshots([]);
       fetchStats();
     } catch (error: any) {
       toast({
@@ -266,6 +315,61 @@ const Admin = () => {
                   <div className="space-y-2">
                     <Label htmlFor="minOS">Minimum OS *</Label>
                     <Input id="minOS" name="minOS" required placeholder="Windows 10+" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="appIcon">App Icon</Label>
+                    <div className="flex items-center gap-4">
+                      <Input 
+                        id="appIcon" 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => setSelectedIcon(e.target.files?.[0] || null)}
+                        className="cursor-pointer"
+                      />
+                      {selectedIcon && (
+                        <div className="flex items-center gap-2">
+                          <img 
+                            src={URL.createObjectURL(selectedIcon)} 
+                            alt="Icon preview" 
+                            className="w-12 h-12 rounded object-cover"
+                          />
+                          <p className="text-sm text-muted-foreground">
+                            {selectedIcon.name}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Recommended: 512x512px PNG or JPG</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="screenshots">Screenshots (Optional)</Label>
+                    <Input 
+                      id="screenshots" 
+                      type="file" 
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => setSelectedScreenshots(Array.from(e.target.files || []))}
+                      className="cursor-pointer"
+                    />
+                    {selectedScreenshots.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedScreenshots.map((file, index) => (
+                          <div key={index} className="relative">
+                            <img 
+                              src={URL.createObjectURL(file)} 
+                              alt={`Screenshot ${index + 1}`} 
+                              className="w-20 h-20 rounded object-cover"
+                            />
+                          </div>
+                        ))}
+                        <p className="text-sm text-muted-foreground w-full">
+                          {selectedScreenshots.length} screenshot(s) selected
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">You can upload multiple screenshots</p>
                   </div>
 
                   <div className="space-y-2">
