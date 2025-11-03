@@ -12,6 +12,7 @@ import { Upload, Package, BarChart3, MessageSquare, Plus, Loader2 } from "lucide
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import ManageAppsTab from "@/components/ManageAppsTab";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -304,15 +305,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="manage">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Apps</CardTitle>
-                <CardDescription>View and edit your published apps</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">App management interface coming soon.</p>
-              </CardContent>
-            </Card>
+            <ManageAppsTab onAppDeleted={fetchStats} />
           </TabsContent>
 
           <TabsContent value="tickets">
