@@ -83,6 +83,7 @@ const Browse = () => {
               <SelectItem value="health">Health</SelectItem>
               <SelectItem value="entertainment">Entertainment</SelectItem>
               <SelectItem value="utilities">Utilities</SelectItem>
+              <SelectItem value="education">Education</SelectItem>
             </SelectContent>
           </Select>
         </div>

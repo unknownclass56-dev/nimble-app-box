@@ -71,7 +71,7 @@ const Admin = () => {
     setUploading(true);
     
     const formData = new FormData(e.target as HTMLFormElement);
-    const category = formData.get("category") as "productivity" | "photography" | "health" | "entertainment" | "utilities";
+    const category = formData.get("category") as "productivity" | "photography" | "health" | "entertainment" | "utilities" | "education";
     
     try {
       // Upload file to storage
@@ -238,6 +238,7 @@ const Admin = () => {
                           <SelectItem value="health">Health</SelectItem>
                           <SelectItem value="entertainment">Entertainment</SelectItem>
                           <SelectItem value="utilities">Utilities</SelectItem>
+                          <SelectItem value="education">Education</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

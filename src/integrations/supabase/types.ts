@@ -295,6 +295,7 @@ export type Database = {
         | "health"
         | "entertainment"
         | "utilities"
+        | "education"
       app_role: "admin" | "user"
       ticket_status: "new" | "open" | "resolved"
     }
@@ -430,6 +431,7 @@ export const Constants = {
         "health",
         "entertainment",
         "utilities",
+        "education",
       ],
       app_role: ["admin", "user"],
       ticket_status: ["new", "open", "resolved"],
