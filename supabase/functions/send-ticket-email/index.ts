@@ -16,6 +16,8 @@ interface TicketEmailRequest {
   message: string;
   isReply?: boolean;
   replyMessage?: string;
+  isStatusUpdate?: boolean;
+  newStatus?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -24,14 +26,34 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, ticketId, customerName, message, isReply, replyMessage }: TicketEmailRequest = await req.json();
+    const { to, subject, ticketId, customerName, message, isReply, replyMessage, isStatusUpdate, newStatus }: TicketEmailRequest = await req.json();
 
     console.log("Sending email to:", to);
 
     let emailHtml = "";
     let emailSubject = "";
 
-    if (isReply) {
+    if (isStatusUpdate) {
+      emailSubject = `Ticket Status Updated - #${ticketId.slice(0, 8)}`;
+      const statusMessages = {
+        new: "Your ticket has been received and is waiting for review.",
+        open: "Your ticket is now being actively worked on by our support team.",
+        resolved: "Your ticket has been resolved. If you need further assistance, please reply to this email."
+      };
+      emailHtml = `
+        <h1>Ticket Status Update</h1>
+        <p>Hello ${customerName},</p>
+        <p>Your support ticket status has been updated to: <strong>${newStatus}</strong></p>
+        <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p><strong>Ticket ID:</strong> #${ticketId.slice(0, 8)}</p>
+          <p><strong>Subject:</strong> ${subject}</p>
+          <p><strong>Status:</strong> ${newStatus}</p>
+          <p>${statusMessages[newStatus as keyof typeof statusMessages] || ""}</p>
+        </div>
+        <p>If you have any questions, feel free to reach out.</p>
+        <p>Best regards,<br>Support Team</p>
+      `;
+    } else if (isReply) {
       emailSubject = `Re: ${subject} - Ticket #${ticketId.slice(0, 8)}`;
       emailHtml = `
         <h1>Support Team Reply</h1>

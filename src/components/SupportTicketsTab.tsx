@@ -96,9 +96,29 @@ const SupportTicketsTab = () => {
 
       if (error) throw error;
 
+      // Send status update email notification
+      const ticketToUpdate = selectedTicket?.id === ticketId ? selectedTicket : tickets.find(t => t.id === ticketId);
+      if (ticketToUpdate) {
+        const { error: emailError } = await supabase.functions.invoke("send-ticket-email", {
+          body: {
+            to: ticketToUpdate.email,
+            subject: ticketToUpdate.subject,
+            ticketId: ticketToUpdate.id,
+            customerName: ticketToUpdate.name,
+            message: ticketToUpdate.message,
+            isStatusUpdate: true,
+            newStatus: newStatus,
+          },
+        });
+
+        if (emailError) {
+          console.error("Email notification error:", emailError);
+        }
+      }
+
       toast({
         title: "Status updated",
-        description: `Ticket status changed to ${newStatus}`,
+        description: `Ticket status changed to ${newStatus} and customer notified`,
       });
 
       fetchTickets();
