@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import ManageAppsTab from "@/components/ManageAppsTab";
+import SupportTicketsTab from "@/components/SupportTicketsTab";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -414,15 +415,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="tickets">
-            <Card>
-              <CardHeader>
-                <CardTitle>Support Tickets</CardTitle>
-                <CardDescription>Respond to user support requests</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Support ticket management coming soon.</p>
-              </CardContent>
-            </Card>
+            <SupportTicketsTab />
           </TabsContent>
         </Tabs>
       </div>

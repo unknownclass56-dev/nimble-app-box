@@ -54,9 +54,25 @@ const Support = () => {
 
       if (error) throw error;
 
+      // Send confirmation email
+      try {
+        await supabase.functions.invoke("send-ticket-email", {
+          body: {
+            to: formData.email,
+            subject: formData.subject,
+            ticketId: "new-ticket",
+            customerName: formData.name,
+            message: formData.message,
+            isReply: false,
+          },
+        });
+      } catch (emailError) {
+        console.error("Email error:", emailError);
+      }
+
       toast({
         title: "Support ticket submitted",
-        description: "We'll get back to you within 24 hours.",
+        description: "We'll get back to you within 24 hours. Check your email for confirmation.",
       });
       
       setFormData({
