@@ -178,10 +178,12 @@ export type Database = {
         Row: {
           app_id: string | null
           created_at: string | null
+          customer_comment: string | null
           email: string
           id: string
           message: string
           name: string
+          rating: number | null
           status: Database["public"]["Enums"]["ticket_status"] | null
           subject: string
           updated_at: string | null
@@ -189,10 +191,12 @@ export type Database = {
         Insert: {
           app_id?: string | null
           created_at?: string | null
+          customer_comment?: string | null
           email: string
           id?: string
           message: string
           name: string
+          rating?: number | null
           status?: Database["public"]["Enums"]["ticket_status"] | null
           subject: string
           updated_at?: string | null
@@ -200,10 +204,12 @@ export type Database = {
         Update: {
           app_id?: string | null
           created_at?: string | null
+          customer_comment?: string | null
           email?: string
           id?: string
           message?: string
           name?: string
+          rating?: number | null
           status?: Database["public"]["Enums"]["ticket_status"] | null
           subject?: string
           updated_at?: string | null

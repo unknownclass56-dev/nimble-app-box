@@ -18,6 +18,8 @@ interface SupportTicket {
   status: string;
   created_at: string;
   app_id: string | null;
+  rating?: number | null;
+  customer_comment?: string | null;
   apps?: {
     title: string;
   };
@@ -303,6 +305,44 @@ const SupportTicketsTab = () => {
                   <p className="text-sm whitespace-pre-wrap">{selectedTicket.message}</p>
                 </div>
               </div>
+
+              {/* Customer Feedback */}
+              {(selectedTicket.rating || selectedTicket.customer_comment) && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <h4 className="font-semibold">Customer Feedback</h4>
+                    {selectedTicket.rating && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Rating:</p>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className={`text-2xl ${
+                                star <= selectedTicket.rating! ? "text-yellow-500" : "text-gray-300"
+                              }`}
+                            >
+                              ★
+                            </span>
+                          ))}
+                          <span className="text-sm text-muted-foreground ml-2">
+                            ({selectedTicket.rating}/5)
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {selectedTicket.customer_comment && (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">Comment:</p>
+                        <div className="bg-muted p-4 rounded-lg">
+                          <p className="text-sm whitespace-pre-wrap">{selectedTicket.customer_comment}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Replies */}
               {replies.length > 0 && (
