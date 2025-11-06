@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// SMTP configuration using user's email
+const emailUser = Deno.env.get("EMAIL_USER");
+const emailPassword = Deno.env.get("EMAIL_APP_PASSWORD");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,16 +88,32 @@ const handler = async (req: Request): Promise<Response> => {
       `;
     }
 
-    const emailResponse = await resend.emails.send({
-      from: "Support <onboarding@resend.dev>",
-      to: [to],
+    // Send email using SMTP
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.gmail.com",
+        port: 465,
+        tls: true,
+        auth: {
+          username: emailUser as string,
+          password: emailPassword as string,
+        },
+      },
+    });
+
+    await client.send({
+      from: emailUser as string,
+      to: to,
       subject: emailSubject,
+      content: emailHtml,
       html: emailHtml,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    await client.close();
 
-    return new Response(JSON.stringify(emailResponse), {
+    console.log("Email sent successfully to:", to);
+
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
